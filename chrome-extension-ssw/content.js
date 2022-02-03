@@ -7,14 +7,11 @@
 var permissao;
 
 // aguarda antes de carregar o plugin para dar tempo do SSW construir a tela
-
-//const socket = io.connect("https://nodeservercvl.azurewebsites.net");
-//const socket = io.connect("http://localhost:3000");
-var agente;
-
-
-
 /*
+
+
+//const socket = io.connect("http://localhost:3000");
+
 socket.on('agente', (data) => {
     console.log("Agente: "+data.agente +"\nTelefone: ("+ data.ddd+')'+data.telefone)
     if(data.agente==agente){
@@ -22,7 +19,8 @@ socket.on('agente', (data) => {
     }
 });
 */
-
+const socket = io.connect("https://nodeservercvl.azurewebsites.net");
+var agente;
 //console.log("antes do timeout")
 intervalo = 0;
 setInterval(() => { //letreiro vermelho no site da consulta ANTT
@@ -41,8 +39,28 @@ setInterval(() => { //letreiro vermelho no site da consulta ANTT
         }
     }
 }, 900);
+setTimeout(function(){
 
+   xmlhttp = new XMLHttpRequest();                                     //consulta a tabela "descontos" para exibir o info/formulario condizente
+xmlhttp.onreadystatechange = function(){
+    if (this.readyState == 4 && this.status == 200) {
+        myObj = this.responseText;
+        x = JSON.parse(myObj);
+        login = getCookie('login');
+        for(i=0;i<x.length;i++){
+            agente = x[i].usuariossw;
+            if(login.stringify==agente.stringify){
+                setCookie('agente', agente, 1);
+                agente = getCookie('agente');
+            }
+        }
+    }
+}
 
+xmlhttp.open("GET", "https://sswresponse.azurewebsites.net/?op=user_callcenter", true);
+xmlhttp.send();
+ 
+}, 3000)
 
 setTimeout(function() {
     //console.log("dentro do timeout")  
@@ -65,6 +83,7 @@ setTimeout(function() {
             chrome.storage.local.set({
                 'primeira_execucao': true
             }, function() {
+                
                 console.log('No login, zera a primeira vez para atualizar politica de permissao')
             });
 
@@ -255,6 +274,23 @@ setTimeout(function() {
             op475_antecipar_pagamento();
             break;
     }
+    criaDiv();
+
+    
+    socket.on('agente', (data) => {
+        console.log("Agente: "+data.agente +"\nTelefone: ("+ data.ddd+')'+data.telefone)
+        try{
+            //var result = agente.find(t=>t.idagent == data.agente).usuario
+            if(getCookie('login')==getCookie('agente')){
+                
+                callcenter(data.ddd,data.telefone)
+            }
+        }catch(err){
+    
+        }
+        
+    });
+    
 
     function op002_simular(){
 
@@ -1425,6 +1461,7 @@ function descontos_faturas() {
             }
         }
     }
+    
     xmlhttp.open("GET", "https://sswresponse.azurewebsites.net/?op=desconto&descontoacao=exibe&ctrcfatura="+ctrcfatura, true);
     xmlhttp.send();
     */
@@ -5876,6 +5913,69 @@ function createNewDocCVL(pathname, html) {
 function callcenter(ddd, telefone) {
     try {
         var x = document.getElementById("nextIP");
+        
+        //busca no SSW o cliente
+        //desabilitar em cas e bug
+
+        consultarClienteTelefone(telefone,(resposta)=>{
+            if(resposta.substring(9,24)=="numero_telefone"){
+                //telefone nao encontrado
+                cnpj=""
+                nome_cliente=""
+                x.className = "show";
+                x.innerText = "Cliente Ligando  - Telefone: (" + ddd + ')' + telefone
+
+                //mostra na tela o cliente
+                setTimeout(function() {
+                    x.className = x.className.replace("show", "");
+                }, 5000);
+            }else{
+                //telefone encontrado
+                inicio_xml=resposta.indexOf('<xml id="xmlsr"><rs>')+16
+                fim_xml=resposta.indexOf('</rs></xml>')+5
+                xml = resposta.substring(inicio_xml,fim_xml)
+                //console.log("xml: "+xml)
+                processaXMLssw(xml, (doc)=>{
+                    //primeiro [] sao todos os retornos
+                    //segundo [] 0 -> CNPJ, 1-> Nome, 2-> Endereco, 3-> Cidade, 4->UF, 5-> CFOP, 6-> Telefone, 7-> Sequencial
+                    //terceiro [] sempre 0
+                    //console.log(doc)
+                    cnpj = doc.getElementsByTagName('r')[0].childNodes[0].childNodes[0].textContent
+                    nome_cliente = doc.getElementsByTagName('r')[0].childNodes[1].childNodes[0].textContent
+                    x.className = "show";
+                    x.innerText = "Cliente Ligando  - Telefone: (" + ddd + ')' + telefone +"\nCNPJ: "+cnpj+ "\nCliente:"+nome_cliente
+
+                    //mostra na tela o cliente
+                    setTimeout(function() {
+                        x.className = x.className.replace("show", "");
+                    }, 10000);
+                })                
+            }
+        })
+        
+
+        
+    } catch (err) {
+        console.log(err);
+    }
+
+}
+
+function processaXMLssw(stringXML,callback){
+    stringXML="<?xml version='1.0' encoding='UTF-8'?>"+stringXML
+    parser = new DOMParser();
+    xmlDoc = parser.parseFromString(stringXML,"text/xml");
+    if(callback){
+        callback(xmlDoc)
+    }else{
+        return xmlDoc
+    }
+    
+}
+
+/*function callcenter(ddd, telefone) {
+    try {
+        var x = document.getElementById("nextIP");
         x.className = "show";
         x.innerText = "Cliente Ligando  - Telefone: (" + ddd + ')' + telefone
         setTimeout(function() {
@@ -5885,13 +5985,33 @@ function callcenter(ddd, telefone) {
         console.log(err);
     }
 
-}
+}*/
 
 function criaDiv() {
     node = document.createElement('div');
     node.setAttribute("id", "nextIP");
     document.body.append(node);
 }
+
+/*
+function consultarClienteTelefone(telefone, callback) {
+    var xhttp = new XMLHttpRequest();
+    /*
+    var url = 'https://sistema.ssw.inf.br/bin/ssw0017';
+    var params = 'sequencia=1&dummy=1587673338426'
+    
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            // Typical action to be performed when the document is ready:
+            var response = xhttp.responseText;
+            //console.log(response)
+            callback(response);
+        }
+    };
+    xhttp.open("POST", "https://sistema.ssw.inf.br/bin/ssw0054", true);
+    xhttp.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+    xhttp.send("act=TEL&f9=" + telefone + "&tipo=cliente&automatico=S&programa=ssw0054&fld=1&seq_cliente=0&cliente=&dummy=1595442766329");
+}*/
 
 function consultarClienteTelefone(telefone, callback) {
     var xhttp = new XMLHttpRequest();
@@ -5904,12 +6024,17 @@ function consultarClienteTelefone(telefone, callback) {
             // Typical action to be performed when the document is ready:
             var response = xhttp.responseText;
             //console.log(response)
-            callback(response);
+            if(callback){
+                callback(response);
+            }else{
+                return response
+            }
+           
         }
     };
     xhttp.open("POST", "https://sistema.ssw.inf.br/bin/ssw0054", true);
     xhttp.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
-    xhttp.send("act=TEL&f9=" + telefone + "&tipo=cliente&automatico=S&programa=ssw0054&fld=1&seq_cliente=0&cliente=&dummy=1595442766329");
+    xhttp.send("act=TEL&numero_telefone=" + telefone + "&tipo=cliente&automatico=S&programa=ssw0054&fld=1&seq_cliente=0&cliente=&dummy=1595442766329");
 }
 
 function setCookie(cname, cvalue, exdays) {
