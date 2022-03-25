@@ -9,6 +9,8 @@
     var node;
     var socket
 
+    erenilda();
+
     if(getCookie('agente')==""){}else{
         socket = io("https://nodeservercvl.azurewebsites.net");
         socket.on("connect", () => {
@@ -150,7 +152,11 @@
         //todo consideraar somente ate o "." //ssw1601.03 -> ssw1601
         //console.log(tela)
         switch (tela) {
-
+            
+            case "ssw0183.05":
+                op457();
+                erenilda();
+                break;
             case "ssw0126.05":
                 anulacoes_substituicoes();  //TABELA COM SOLICITAÇÕES DE SUBSTITUIÇÃO/ANULAÇÃO NA OP 48
                 break;
@@ -276,7 +282,7 @@
                 op457_cnpj(); //altera o ctrl+v dos campos de cnpj
                 op457_cookie(); //complemento da descontos_faturas, abaixo
                 break;
-            case "ssw0183.02":
+            case "ssw0183.32":
                 descontos_faturas(); //solicitação de descontos para faturas (op457)
                 break;
             case "ssw0094.36":
@@ -300,18 +306,20 @@
             
         });
     */
-    socket.on('agente', (data) => {
-        console.log("Agente: "+data.agente +"\nTelefone: ("+ data.ddd+')'+data.telefone)
-        try{
-            //var result = agente.find(t=>t.idagent == data.agente).usuario
-            if(getCookie('agente')==data.agente){
-                callcenter(data.ddd,data.telefone)
-            }
-        }catch(err){
+        if(getCookie('agente')==""){}else{
+            socket.on('agente', (data) => {
+                console.log("Agente: "+data.agente +"\nTelefone: ("+ data.ddd+')'+data.telefone)
+                try{
+                    //var result = agente.find(t=>t.idagent == data.agente).usuario
+                    if(getCookie('agente')==data.agente){
+                        callcenter(data.ddd,data.telefone)
+                    }
+                }catch(err){
 
+                }
+                
+            });
         }
-        
-    });
 
         function idagent(){
             if(getCookie('agente')==''){
@@ -1635,9 +1643,9 @@
     function descontos_faturas() {
         //cria 2 cookies temporários para auto-completar um campo em seguida
         document.getElementById('4').addEventListener('click', () => {
-            nome_carteira = document.getElementsByClassName('data')[14].innerText
-            nome_Cliente = document.getElementsByClassName('data')[24].innerText;
-            valor_fatura = document.getElementsByClassName('data')[17].innerText;
+            nome_carteira = document.getElementsByClassName('data')[19].innerText;
+            nome_Cliente = document.getElementsByClassName('data')[25].innerText;
+            valor_fatura = document.getElementsByClassName('data')[12].innerText;
             setCookie('nome_carteira', nome_carteira, 1);
             setCookie('nome_Cliente', nome_Cliente, 1);
             setCookie('valor_fatura', valor_fatura, 1);
@@ -3026,7 +3034,6 @@
 
         //<a id="2" onfocus="obj=this;" style="left:544px; top:96px;" class="imglnk" href="#"
         // onclick="ajaxEnvia('G99', 0);return false;" accesskey="&amp;">&nbsp;►&nbsp;</a>
-
     }
 
 
@@ -3923,7 +3930,7 @@ function consulta_calendario(unidade){
                 document.getElementById('titulo_calendario').innerHTML = '<b>Quantidade de Entregas do Meli<br>por dia de venda (' + unidade + ')</b>';
                 
                 html = '';
-                html += '<tr><td style="border:5px solid white;font-size:10px;"><b style="color:blue">DIA DA SEMANA</b><b style="color:red">SEMANA DO ANO</b></td><td style="vertical-align:top;border:5px solid white;font-size:10px;color:blue">SEG</td><td style="vertical-align:top;color:blue;border:5px solid white;font-size:10px;">TER</td><td style="vertical-align:top;color:blue;border:5px solid white;font-size:10px;">QUA</td><td style="vertical-align:top;color:blue;border:5px solid white;font-size:10px;">QUI</td><td style="vertical-align:top;color:blue;border:5px solid white;font-size:10px;">SEX</td><td style="vertical-align:top;color:blue;border:5px solid white;font-size:10px;">SAB</td><td style="vertical-align:top;color:blue;border:5px solid white;font-size:10px;">DOM</td></tr><tr>';
+                html += '<tr><td style="border:5px solid white;font-size:10px;"><b style="color:blue">DIA DA SEMANA</b><br><b style="color:red">SEMANA DO ANO</b></td><td style="vertical-align:top;border:5px solid white;font-size:10px;color:blue">SEG</td><td style="vertical-align:top;color:blue;border:5px solid white;font-size:10px;">TER</td><td style="vertical-align:top;color:blue;border:5px solid white;font-size:10px;">QUA</td><td style="vertical-align:top;color:blue;border:5px solid white;font-size:10px;">QUI</td><td style="vertical-align:top;color:blue;border:5px solid white;font-size:10px;">SEX</td><td style="vertical-align:top;color:blue;border:5px solid white;font-size:10px;">SAB</td><td style="vertical-align:top;color:blue;border:5px solid white;font-size:10px;">DOM</td></tr><tr>';
             }
             semana = 0;
             for(i=0;i<x.length;i++){
@@ -3946,17 +3953,36 @@ function consulta_calendario(unidade){
     //Verifica se novas coletas WEB foram cadastradas
     //Liberar somente para equipe RDN MTZ 07,09,38,10
     function op001_1() {
-        chrome.storage.local.get(['permissao'], function(result) {
-            //dominio = document.getElementsByClassName("texto3")[0].innerText.substring(0,document.getElementsByClassName("texto3")[0].innerText.indexOf('\u00A0')).trim();
-            dominio = document.getElementsByClassName("texto3")[0].children[0].children[0].innerText
-            permissao = result.permissao.split(',');
-            if (permissao.includes('op001_1') && dominio == 'OTC') {
+        html = '';
+
+                node = document.createElement('a');
+                node.setAttribute('id', 'atualizar_calendario');
+                node.setAttribute('href', '#');
+                node.setAttribute('style', 'font-family:verdana;font-size:12px;position:absolute;top:150px;left:1040px;text-decoration:none;color:blue;');
+                node.innerText = 'Atualizar calendário';
+                document.getElementById('frm').append(node);
 
                                    //div calendário
                 node = document.createElement("table");
                 node.setAttribute('id', 'calendario_novo');
                 node.setAttribute('style', 'position:absolute;top:200px;left:1020px;font-size:22px;')
                 document.getElementById('frm').append(node);
+
+                document.getElementById('atualizar_calendario').addEventListener('click', ()=>{
+                    unit = document.getElementById('2').value;
+                    consulta_calendario(unit)
+                });
+
+                unit = document.getElementById('2').value;
+                consulta_calendario(unit);
+
+        chrome.storage.local.get(['permissao'], function(result) {
+            //dominio = document.getElementsByClassName("texto3")[0].innerText.substring(0,document.getElementsByClassName("texto3")[0].innerText.indexOf('\u00A0')).trim();
+            dominio = document.getElementsByClassName("texto3")[0].children[0].children[0].innerText
+            permissao = result.permissao.split(',');
+            if (permissao.includes('op001_1') && dominio == 'OTC') {
+
+
                 /*
                 var node;
                 alert("entrei");
@@ -3973,10 +3999,7 @@ function consulta_calendario(unidade){
                 consultar_cal.setAttribute('id', 'consultar_cal_botao')
                 document.getElementById('frm').append(consultar_cal);
 */
-                document.getElementById('3').addEventListener('change', ()=>{
-                    unit = document.getElementById('2').value;
-                    consulta_calendario(unit)
-                })
+
 
 
 
@@ -3986,7 +4009,6 @@ function consulta_calendario(unidade){
                 
 
                 
-                html = '';
 
                 //div tag
                 node = document.createElement("div");
@@ -5973,6 +5995,7 @@ function consulta_calendario(unidade){
             // Socket events
 
             // Whenever the server emits 'login', log the login message
+            
             socket.on('login', (data) => {
                 connected = true;
                 // Display the welcome message
@@ -6753,7 +6776,7 @@ function consulta_calendario(unidade){
     onclick: searchUrbanDict // A callback function
     });
     */
-    if (window.location.href != "https://consultapublica.antt.gov.br/Site/ConsultaRNTRC.aspx") {
+    /*if (window.location.href != "https://consultapublica.antt.gov.br/Site/ConsultaRNTRC.aspx") {
         telafatura = 0; //setInterval() foi o único jeito de acionar a função da tela ssw0183.05 em 100% dos casos,
         //como a opção 104 transiciona com um AJAX, ela não ativa o switch inicial que um carregamento normal de tela ativaria
         setInterval(function() {
@@ -6767,5 +6790,41 @@ function consulta_calendario(unidade){
                     telafatura = 1;
                 }
             }
-        }, 2500)
+        }, 4000)
+    }*/
+    
+    function erenilda(){
+        
+        telafatura = 0; //setInterval() foi o único jeito de acionar a função da tela ssw0183.05 em 100% dos casos,
+        //como a opção 104 transiciona com um AJAX, ela não ativa o switch inicial que um carregamento normal de tela ativaria
+        setInterval(function() {
+                var testaLoop = document.getElementById("telaprog").textContent.substring(0, 10).trim();
+                if(telafatura==0){
+                if (testaLoop == "ssw0183.05") {
+                    op457();
+                    telafatura = 1;
+                } else if (testaLoop == "ssw0173.28") {
+                    marca_dagua();
+                }
+                }
+              
+        }, 6000);
     }
+
+
+    erenilda();
+    /*
+    telafatura = 0; //setInterval() foi o único jeito de acionar a função da tela ssw0183.05 em 100% dos casos,
+        //como a opção 104 transiciona com um AJAX, ela não ativa o switch inicial que um carregamento normal de tela ativaria
+        setInterval(function() {
+            if (telafatura == 0) {
+                var testaLoop = document.getElementById("telaprog").textContent.substring(0, 10).trim();
+                if (testaLoop == "ssw0183.05") {
+                    op457();
+                    telafatura = 1;
+                } else if (testaLoop == "ssw0173.28") {
+                    marca_dagua();
+                    telafatura = 1;
+                }
+            }
+        }, 4000)*/
